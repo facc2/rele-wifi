@@ -1,0 +1,74 @@
+#include <WiFi.h>
+#include <DHT.h>
+#include <RemoteXY.h>
+
+// ********** Configuración RemoteXY **********
+#define REMOTEXY_MODE__ESP32CORE_WIFI_POINT
+#define REMOTEXY_WIFI_SSID "ESP32_Control"
+#define REMOTEXY_WIFI_PASSWORD "12345678"
+#define REMOTEXY_SERVER_PORT 6377
+
+#pragma pack(push, 1)
+uint8_t RemoteXY_CONF[] = { 255,3,0,0,0,60,0,17,0,0 };  
+#pragma pack(pop)
+
+// Variables de RemoteXY
+struct {
+  uint8_t switch1;      // Switch manual
+  uint8_t autoSwitch;   // Switch modo automático
+  int16_t tempValue;    // Indicador de temperatura
+  uint8_t connect_flag; // Estado de conexión
+} RemoteXY;
+
+// ********** Pines **********
+#define DHTPIN 21
+#define DHTTYPE DHT11
+#define RELAYPIN 19
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// ********** Variables de control **********
+bool ventiladorEncendido = false;
+float tempEncendido = 27;  // Temperatura para encender ventilador en automático
+float tempApagado = 23;    // Temperatura para apagar ventilador en automático
+
+void setup() {
+  Serial.begin(9600);
+  RemoteXY_Init();    // Inicializa la comunicación con RemoteXY
+  dht.begin();        // Inicializa sensor DHT11
+  pinMode(RELAYPIN, OUTPUT);
+  digitalWrite(RELAYPIN, LOW); // Inicia con ventilador apagado
+}
+
+void loop() {
+  RemoteXY_Handler(); // Mantiene comunicación con la app
+
+  // --- Leer temperatura ---
+  float temperature = dht.readTemperature();
+
+  if (!isnan(temperature)) { // Verifica que la lectura sea válida
+    Serial.print("Temperatura: ");
+    Serial.print(temperature);
+    Serial.println(" °C");
+
+    RemoteXY.tempValue = (int)temperature; // Actualiza el indicador en la app
+
+    // --- Control del ventilador ---
+    if (RemoteXY.autoSwitch == 1) { // Modo automático
+      if (temperature > tempEncendido) ventiladorEncendido = true;
+      if (temperature < tempApagado) ventiladorEncendido = false;
+      Serial.print("Ventilador automático: ");
+      Serial.println(ventiladorEncendido ? "ENCENDIDO" : "APAGADO");
+    } else { // Modo manual
+      ventiladorEncendido = (RemoteXY.switch1 == 1);
+      Serial.print("Ventilador manual: ");
+      Serial.println(ventiladorEncendido ? "ENCENDIDO" : "APAGADO");
+    }
+
+    digitalWrite(RELAYPIN, ventiladorEncendido ? HIGH : LOW); // Aplica estado al relé
+  } else {
+    Serial.println("Error al leer el DHT11");
+  }
+
+  delay(2000); // Espera 2 segundos entre lecturas
+}
