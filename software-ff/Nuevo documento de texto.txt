@@ -1,86 +1,85 @@
-#include <WiFi.h>
-#include <DHT11.h>
-#include <RemoteXY.h>
+// Pines de los relés 
 
-// ********** Configuración RemoteXY **********
-#define REMOTEXY_MODE__ESP32CORE_WIFI_POINT
-#define REMOTEXY_WIFI_SSID "ESP32_Control"
-#define REMOTEXY_WIFI_PASSWORD "12345678"
-#define REMOTEXY_SERVER_PORT 6377
+#define RELAY1 19 
 
-#pragma pack(push, 1)
-uint8_t RemoteXY_CONF[] = { 255,3,0,0,0,60,0,17,0,0 };  
-#pragma pack(pop)
+#define RELAY2 17 
 
-// Variables de RemoteXY
-struct {
-  uint8_t switch1;      // Switch manual
-  uint8_t autoSwitch;   // Switch modo automático
-  int16_t tempValue;    // Indicador de temperatura
-  uint8_t connect_flag; // Estado de conexión
-} RemoteXY;
+#define RELAY3 16 
 
-CRemoteXY *remotexy;
+#define RELAY4 18 
 
+ 
 
-// ********** Pines **********
-#define DHTPIN 21
-#define DHTTYPE DHT11
-#define RELAYPIN 19
+void setup() { 
 
-DHT11 dht11(2);
+  // Configurar pines como salida 
 
-// ********** Variables de control **********
-bool ventiladorEncendido = false;
-float tempEncendido = 27;  // Temperatura para encender ventilador en automático
-float tempApagado = 23;    // Temperatura para apagar ventilador en automático
+  pinMode(RELAY1, OUTPUT); 
 
-void setup() {
-  Serial.begin(115200);
-  remotexy = new CRemoteXY (
-    RemoteXY_CONF_PROGMEM, 
-    &RemoteXY, 
-    new CRemoteXYConnectionServer (
-      new CRemoteXYNet_WiFi (
-        "myHomeFiFi",       // REMOTEXY_WIFI_SSID
-        "myPass"),          // REMOTEXY_WIFI_PASSWORD
-      6377                  // REMOTEXY_SERVER_PORT
-    )
-  ); 
-  pinMode(RELAYPIN, OUTPUT);
-  digitalWrite(RELAYPIN, LOW); // Inicia con ventilador apagado
-}
+  pinMode(RELAY2, OUTPUT); 
 
-void loop() {
-  RemoteXY_Handler(); // Mantiene comunicación con la app
+  pinMode(RELAY3, OUTPUT); 
 
-  // --- Leer temperatura ---
-  int temperature = dht11.readTemperature();
+  pinMode(RELAY4, OUTPUT); 
 
-  if (!isnan(temperature)) { // Verifica que la lectura sea válida
-    Serial.print("Temperatura: ");
-    Serial.print(temperature);
-    Serial.println(" °C");
+ 
 
-    RemoteXY.tempValue = (int)temperature; // Actualiza el indicador en la app
+  // Apagar todos los relés al inicio 
 
-    // --- Control del ventilador ---
-    if (RemoteXY.autoSwitch) { // Modo automático
-    // Histeresis
-      if (temperature > tempEncendido) ventiladorEncendido = true;
-      if (temperature < tempApagado) ventiladorEncendido = false;
-      Serial.print("Ventilador automático: ");
-      Serial.println(ventiladorEncendido ? "ENCENDIDO" : "APAGADO");
-    } else { // Modo manual
-      ventiladorEncendido = (RemoteXY.switch1);
-      Serial.print("Ventilador manual: ");
-      Serial.println(ventiladorEncendido ? "ENCENDIDO" : "APAGADO");
-    }
+  digitalWrite(RELAY1, LOW); 
 
-    digitalWrite(RELAYPIN, ventiladorEncendido); // Aplica estado al relé
-  } else {
-    Serial.println("Error al leer el DHT11");
-  }
+  digitalWrite(RELAY2, LOW); 
 
-  delay(2000); // Espera 2 segundos entre lecturas
-}
+  digitalWrite(RELAY3, LOW); 
+
+  digitalWrite(RELAY4, LOW); 
+
+} 
+
+ 
+
+void loop() { 
+
+  // Encender y apagar cada relé con 1 segundo de diferencia 
+
+  digitalWrite(RELAY1, HIGH); 
+
+  delay(1000); 
+
+  digitalWrite(RELAY1, LOW); 
+
+  delay(500); 
+
+ 
+
+  digitalWrite(RELAY2, HIGH); 
+
+  delay(1000); 
+
+  digitalWrite(RELAY2, LOW); 
+
+  delay(500); 
+
+ 
+
+  digitalWrite(RELAY3, HIGH); 
+
+  delay(1000); 
+
+  digitalWrite(RELAY3, LOW); 
+
+  delay(500); 
+
+ 
+
+  digitalWrite(RELAY4, HIGH); 
+
+  delay(1000); 
+
+  digitalWrite(RELAY4, LOW); 
+
+  delay(500); 
+
+} 
+
+ 
